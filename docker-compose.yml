@@ -11,5 +11,15 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  test_db:
+    image: postgres:17-alpine
+    container_name: wallet_test_db
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=wallet_test
+    ports:
+      - "5433:5432"
+
 volumes:
   postgres_data:

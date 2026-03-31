@@ -10,3 +10,8 @@ class OperationRequest(BaseModel):
 
 class BalanceResponse(BaseModel):
     balance: Decimal
+
+
+class WalletResponse(BaseModel):
+    uuid: str
+    balance: float
