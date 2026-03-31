@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.wallet import Wallet
-from app.schemas.wallet import BalanceResponse, WalletResponse
+from app.schemas.wallet import BalanceResponse, OperationRequest, WalletResponse
 
 logger = logging.getLogger(__name__)
 
@@ -42,4 +42,38 @@ async def get_wallet_balance(wallet_uuid, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND, detail="Wallet not found"
         )
     logger.info("Balance requested for wallet: %s", wallet_uuid)
+    return {"balance": float(wallet.balance)}
+
+
+@router.post("/{wallet_uuid}/operation", response_model=BalanceResponse)
+async def perform_operation(
+    wallet_uuid,
+    request: OperationRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Wallet).where(Wallet.uuid == wallet_uuid).with_for_update()
+    )
+    wallet = result.scalar_one_or_none()
+    if not wallet:
+        logger.warning("Wallet not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Wallet not found"
+        )
+
+    if request.operation_type == "WITHDRAW" and wallet.balance < request.amount:
+        logger.warning("Insufficient funds")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient funds"
+        )
+
+    if request.operation_type == "DEPOSIT":
+        wallet.balance = wallet.balance + request.amount
+    else:
+        wallet.balance = wallet.balance - request.amount
+
+    logger.info("Operation completed")
+
+    await db.commit()
+    await db.refresh(wallet)
     return {"balance": float(wallet.balance)}
