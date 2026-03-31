@@ -39,3 +39,21 @@ async def test_list_wallets_with_data(client, db_session):
     data = response.json()
     assert len(data) == 2
     assert {w["uuid"] for w in data} == {str(uuid1), str(uuid2)}
+
+
+@pytest.mark.asyncio
+async def test_get_wallet_balance(client, db_session):
+    wallet_uuid = uuid.uuid4()
+    db_session.add(Wallet(uuid=wallet_uuid, balance=100))
+    await db_session.commit()
+
+    response = await client.get(f"/api/v1/wallets/{wallet_uuid}")
+    assert response.status_code == 200
+    assert float(response.json()["balance"]) == 100
+
+
+@pytest.mark.asyncio
+async def test_get_wallet_not_found(client):
+    response = await client.get(f"/api/v1/wallets/{uuid.uuid4()}")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Wallet not found"
