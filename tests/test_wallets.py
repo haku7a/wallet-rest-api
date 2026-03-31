@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 import pytest
@@ -109,3 +110,22 @@ async def test_operation_wallet_not_found(client):
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Wallet not found"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_withdraw_race(client, db_session):
+    wallet_uuid = uuid.uuid4()
+    db_session.add(Wallet(uuid=wallet_uuid, balance=100))
+    await db_session.commit()
+
+    async def withdraw():
+        return await client.post(
+            f"/api/v1/wallets/{wallet_uuid}/operation",
+            json={"operation_type": "WITHDRAW", "amount": 80},
+        )
+
+    responses = await asyncio.gather(withdraw(), withdraw(), return_exceptions=True)
+    statuses = {r.status_code for r in responses if not isinstance(r, Exception)}
+
+    assert 200 in statuses
+    assert 400 in statuses
