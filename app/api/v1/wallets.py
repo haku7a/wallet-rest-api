@@ -33,7 +33,7 @@ async def list_wallets(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{wallet_uuid}", response_model=BalanceResponse)
-async def get_wallet_balance(wallet_uuid, db: AsyncSession = Depends(get_db)):
+async def get_wallet_balance(wallet_uuid: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Wallet).where(Wallet.uuid == wallet_uuid))
     wallet = result.scalar_one_or_none()
     if not wallet:
@@ -47,7 +47,7 @@ async def get_wallet_balance(wallet_uuid, db: AsyncSession = Depends(get_db)):
 
 @router.post("/{wallet_uuid}/operation", response_model=BalanceResponse)
 async def perform_operation(
-    wallet_uuid,
+    wallet_uuid: str,
     request: OperationRequest,
     db: AsyncSession = Depends(get_db),
 ):
