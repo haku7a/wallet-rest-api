@@ -11,3 +11,8 @@ logging.basicConfig(
 
 app = FastAPI(title="Wallet API")
 app.include_router(router)
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
